@@ -39,10 +39,18 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
       - name: Authenticate to Azure Blob Storage
+        env:
+          RAW_CONNECTION_STRING: ${{ secrets.CLOUD_CREDENTIALS }}
+          AZURE_STORAGE_CONTAINER_SECRET: ${{ secrets.CLOUD_BUCKET }}
         run: |
-          echo "AZURE_STORAGE_CONNECTION_STRING=${{ secrets.CLOUD_CREDENTIALS }}" >> "$GITHUB_ENV"
-          echo "AZURE_STORAGE_CONTAINER=${{ secrets.CLOUD_BUCKET }}" >> "$GITHUB_ENV"
-          dvc remote modify --local myremote connection_string "${{ secrets.CLOUD_CREDENTIALS }}"
+          CONNECTION_STRING="$(printf '%s' "$RAW_CONNECTION_STRING" | tr -d '\r\n')"
+          case "$CONNECTION_STRING" in
+            DefaultEndpointsProtocol=*) ;;
+            *) echo "CLOUD_CREDENTIALS is not a valid Azure connection string." >&2; exit 1 ;;
+          esac
+          echo "AZURE_STORAGE_CONNECTION_STRING=$CONNECTION_STRING" >> "$GITHUB_ENV"
+          echo "AZURE_STORAGE_CONTAINER=$AZURE_STORAGE_CONTAINER_SECRET" >> "$GITHUB_ENV"
+          dvc remote modify --local myremote connection_string "$CONNECTION_STRING"
       - name: Pull data with DVC
         run: dvc pull data/train_phase1.csv data/eval.csv
       - name: Train model
