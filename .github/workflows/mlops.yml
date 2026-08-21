@@ -94,7 +94,7 @@ jobs:
         run: |
           python - <<'PY'
           accuracy = float("${{ needs.train.outputs.accuracy }}")
-          threshold = 0.64
+          threshold = 0.68
           if accuracy < threshold:
               raise SystemExit(
                   f"FAILED: accuracy {accuracy:.4f} < {threshold:.2f}. Deployment cancelled."
